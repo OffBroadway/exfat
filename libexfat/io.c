@@ -52,9 +52,13 @@
 #include <ublio.h>
 #endif
 
+extern ssize_t goReadAt(void* ctx, void* buf, size_t size, off_t offset);
+extern ssize_t goWriteAt(void* ctx, const void* buf, size_t size, off_t offset);
+
 struct exfat_dev
 {
-	int fd;
+	// int fd;
+	void *bridge_ctx;
 	enum exfat_mode mode;
 	uint64_t size; /* in bytes */
 	off_t block_discard_alignment;
@@ -126,7 +130,7 @@ static int read_sys_block_attr(int dev_major, int dev_minor, const char* attr,
 }
 #endif
 
-struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
+struct exfat_dev* exfat_open(void *ctx, uint64_t dev_size, enum exfat_mode mode)
 {
 	struct exfat_dev* dev;
 	struct stat stbuf;
@@ -152,6 +156,14 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		}
 	}
 
+	dev->bridge_ctx = ctx;
+	if (dev->bridge_ctx == NULL) {
+		exfat_error("failed to init file access");
+		return NULL;
+	}
+
+	dev->size = dev_size;
+
 	dev = calloc(1, sizeof(struct exfat_dev));
 	if (dev == NULL)
 	{
@@ -159,6 +171,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		return NULL;
 	}
 
+#if 0
 	switch (mode)
 	{
 	case EXFAT_MODE_RO:
@@ -321,7 +334,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 			return NULL;
 		}
 	}
-
+#endif
 #ifdef USE_UBLIO
 	memset(&up, 0, sizeof(struct ublio_param));
 	up.up_blocksize = 256 * 1024;
@@ -354,12 +367,14 @@ int exfat_close(struct exfat_dev* dev)
 		rc = -EIO;
 	}
 #endif
+#if 0
 	if (close(dev->fd) != 0)
 	{
 		exfat_error("failed to close device: %s", strerror(errno));
 		rc = -EIO;
 	}
 	free(dev);
+#endif
 	return rc;
 }
 
@@ -374,12 +389,14 @@ int exfat_fsync(struct exfat_dev* dev)
 		rc = -EIO;
 	}
 #endif
+#if 0
 	if (fsync(dev->fd) != 0)
 	{
 		exfat_error("fsync failed: %s", strerror(errno));
 		rc = -EIO;
 	}
 	return rc;
+#endif
 }
 
 enum exfat_mode exfat_get_mode(const struct exfat_dev* dev)
@@ -392,6 +409,7 @@ uint64_t exfat_get_size(const struct exfat_dev* dev)
 	return dev->size;
 }
 
+#if 0
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)
 {
 #ifdef USE_UBLIO
@@ -425,6 +443,7 @@ ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size)
 	return write(dev->fd, buffer, size);
 #endif
 }
+#endif
 
 ssize_t exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 		off_t offset)
@@ -432,7 +451,7 @@ ssize_t exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 #ifdef USE_UBLIO
 	return ublio_pread(dev->ufh, buffer, size, offset);
 #else
-	return pread(dev->fd, buffer, size, offset);
+	return goReadAt(dev->bridge_ctx, buffer, size, offset);
 #endif
 }
 
@@ -442,7 +461,7 @@ ssize_t exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
 #ifdef USE_UBLIO
 	return ublio_pwrite(dev->ufh, (void*) buffer, size, offset);
 #else
-	return pwrite(dev->fd, buffer, size, offset);
+	return goWriteAt(dev->bridge_ctx, (void*)buffer, size, offset);
 #endif
 }
 
@@ -580,7 +599,7 @@ int exfat_generic_trim(UNUSED struct exfat_dev* dev, off_t start, off_t end)
 		return 0;
 
 	if (0) ;
-#ifdef BLKDISCARD
+#if 0 // #ifdef BLKDISCARD
 	else if (dev->block_discard_granularity > 0 && dev->block_discard_max_bytes > 0)
 	{
 		start = ROUND_UP(start - dev->block_discard_alignment, dev->block_discard_granularity)
@@ -605,7 +624,7 @@ int exfat_generic_trim(UNUSED struct exfat_dev* dev, off_t start, off_t end)
 #endif
 	else
 	{
-#if HAVE_DECL_FALLOCATE
+#if 0 // #if HAVE_DECL_FALLOCATE
 		exfat_debug("FL_PUNCH_HOLE(%d, %"PRId64"+%"PRId64")", dev->fd,
 				(int64_t) start, (int64_t) (end - start));
 		rc = fallocate(dev->fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,

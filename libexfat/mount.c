@@ -180,7 +180,7 @@ static void exfat_free(struct exfat* ef)
 	ef->sb = NULL;
 }
 
-int exfat_mount(struct exfat* ef, const char* spec, const char* options)
+int exfat_mount(struct exfat* ef, void *bridge_ctx, uint64_t dev_size, const char* options)
 {
 	int rc;
 	enum exfat_mode mode;
@@ -196,7 +196,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		mode = EXFAT_MODE_ANY;
 	else
 		mode = EXFAT_MODE_RW;
-	ef->dev = exfat_open(spec, mode);
+	ef->dev = exfat_open(bridge_ctx, dev_size, mode);
 	if (ef->dev == NULL)
 		return -ENODEV;
 	if (exfat_get_mode(ef->dev) == EXFAT_MODE_RO)
