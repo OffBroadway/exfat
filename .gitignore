@@ -15,7 +15,6 @@ Makefile.in
 Makefile
 /config.log
 /config.status
-/libexfat/config.h
 /libexfat/stamp-h1
 
 # make

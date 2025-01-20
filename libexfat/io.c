@@ -30,9 +30,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#ifdef HAVE_LINUX_FS_H
-#include <linux/fs.h>
-#endif
 #if defined(__APPLE__)
 #include <sys/disk.h>
 #elif defined(__OpenBSD__)
@@ -43,9 +40,6 @@
 #include <sys/ioctl.h>
 #ifdef MAJOR_IN_MKDEV
 #include <sys/mkdev.h>
-#endif
-#ifdef MAJOR_IN_SYSMACROS
-#include <sys/sysmacros.h>
 #endif
 #ifdef USE_UBLIO
 #include <sys/uio.h>
@@ -70,6 +64,7 @@ struct exfat_dev
 #endif
 };
 
+#if 0
 static bool is_open(int fd)
 {
 	return fcntl(fd, F_GETFD) != -1;
@@ -128,6 +123,7 @@ static int read_sys_block_attr(int dev_major, int dev_minor, const char* attr,
 	fclose(fp);
 	return rc;
 }
+#endif
 #endif
 
 struct exfat_dev* exfat_open(void *ctx, uint64_t dev_size, enum exfat_mode mode)
