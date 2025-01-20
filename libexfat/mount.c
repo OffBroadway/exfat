@@ -79,31 +79,18 @@ static int get_int_option(const char* options, const char* option_name,
 	return strtol(p, NULL, base);
 }
 
-static void parse_options(struct exfat* ef, const char* options)
+static void parse_options(struct exfat* ef, enum exfat_repair repair)
 {
-	int opt_umask;
+	int opt_umask = 0;
 
-	opt_umask = get_int_option(options, "umask", 8, 0);
-	ef->dmask = get_int_option(options, "dmask", 8, opt_umask);
-	ef->fmask = get_int_option(options, "fmask", 8, opt_umask);
+	ef->dmask = opt_umask;
+	ef->fmask = opt_umask;
 
-	ef->uid = get_int_option(options, "uid", 10, geteuid());
-	ef->gid = get_int_option(options, "gid", 10, getegid());
+	ef->uid = geteuid();
+	ef->gid = getegid();
 
-	ef->noatime = exfat_match_option(options, "noatime");
-
-	switch (get_int_option(options, "repair", 10, 0))
-	{
-	case 1:
-		ef->repair = EXFAT_REPAIR_ASK;
-		break;
-	case 2:
-		ef->repair = EXFAT_REPAIR_YES;
-		break;
-	default:
-		ef->repair = EXFAT_REPAIR_NO;
-		break;
-	}
+	ef->noatime = false;
+	ef->repair = repair;
 }
 
 static bool verify_vbr_checksum(const struct exfat* ef, void* sector)
@@ -180,22 +167,15 @@ static void exfat_free(struct exfat* ef)
 	ef->sb = NULL;
 }
 
-int exfat_mount(struct exfat* ef, void *bridge_ctx, uint64_t dev_size, const char* options)
+int exfat_mount(struct exfat* ef, void *bridge_ctx, uint64_t dev_size, enum exfat_mode mode, enum exfat_repair repair)
 {
 	int rc;
-	enum exfat_mode mode;
 
 	exfat_tzset();
 	memset(ef, 0, sizeof(struct exfat));
 
-	parse_options(ef, options);
+	parse_options(ef, repair);
 
-	if (exfat_match_option(options, "ro"))
-		mode = EXFAT_MODE_RO;
-	else if (exfat_match_option(options, "ro_fallback"))
-		mode = EXFAT_MODE_ANY;
-	else
-		mode = EXFAT_MODE_RW;
 	ef->dev = exfat_open(bridge_ctx, dev_size, mode);
 	if (ef->dev == NULL)
 		return -ENODEV;

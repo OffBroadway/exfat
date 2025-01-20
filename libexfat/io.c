@@ -138,6 +138,7 @@ struct exfat_dev* exfat_open(void *ctx, uint64_t dev_size, enum exfat_mode mode)
 	struct ublio_param up;
 #endif
 
+#if 0
 	/* The system allocates file descriptors sequentially. If we have been
 	   started with stdin (0), stdout (1) or stderr (2) closed, the system
 	   will give us descriptor 0, 1 or 2 later when we open block device,
@@ -155,14 +156,12 @@ struct exfat_dev* exfat_open(void *ctx, uint64_t dev_size, enum exfat_mode mode)
 			return NULL;
 		}
 	}
+#endif
 
-	dev->bridge_ctx = ctx;
-	if (dev->bridge_ctx == NULL) {
+	if (ctx == NULL) {
 		exfat_error("failed to init file access");
 		return NULL;
 	}
-
-	dev->size = dev_size;
 
 	dev = calloc(1, sizeof(struct exfat_dev));
 	if (dev == NULL)
@@ -170,6 +169,9 @@ struct exfat_dev* exfat_open(void *ctx, uint64_t dev_size, enum exfat_mode mode)
 		exfat_error("failed to allocate memory for device structure");
 		return NULL;
 	}
+
+	dev->bridge_ctx = ctx;
+	dev->size = dev_size;
 
 #if 0
 	switch (mode)

@@ -103,6 +103,13 @@ enum exfat_mode
 	EXFAT_MODE_ANY,
 };
 
+enum exfat_repair
+{
+	EXFAT_REPAIR_NO,
+	EXFAT_REPAIR_ASK,
+	EXFAT_REPAIR_YES,
+};
+
 struct exfat_dev;
 
 struct exfat
@@ -127,7 +134,7 @@ struct exfat
 	gid_t gid;
 	int ro;
 	bool noatime;
-	enum { EXFAT_REPAIR_NO, EXFAT_REPAIR_ASK, EXFAT_REPAIR_YES } repair;
+	enum exfat_repair repair;
 };
 
 /* in-core nodes iterator */
@@ -230,7 +237,7 @@ const char* exfat_get_label(struct exfat* ef);
 int exfat_set_label(struct exfat* ef, const char* label);
 
 int exfat_soil_super_block(const struct exfat* ef);
-int exfat_mount(struct exfat* ef, void *bridge_ctx, uint64_t dev_size, const char* options);
+int exfat_mount(struct exfat* ef, void *bridge_ctx, uint64_t dev_size, enum exfat_mode mode, enum exfat_repair repair);
 void exfat_unmount(struct exfat* ef);
 
 time_t exfat_exfat2unix(struct exfat* ef, le16_t date, le16_t time,
